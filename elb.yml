@@ -53,8 +53,7 @@ Resources:
                   Value: 'false'
                 - Key: 'idle_timeout.timeout_seconds'
                   Value: '60'
-            Name:
-                'Fn::Join': [ '-', [ 'Public', !Ref 'AWS::StackName' ] ]
+            Name: 'Public-ELB'
             Scheme: 'internet-facing'
             SecurityGroups:
                 Ref: SecurityGroups
@@ -62,8 +61,7 @@ Resources:
                 Ref: Subnets
             Tags:
                 - Key: 'Name'
-                  Value:
-                      'Fn::Join': [ '-', [ 'Public', !Ref 'AWS::StackName' ] ]
+                  Value: 'Public-ELB'
                 - Key: 'Project'
                   Value:
                       Ref: 'Project'
