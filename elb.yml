@@ -2,7 +2,7 @@
 # Cannot get this to work for some reason
 #AWSTemplateFormatVersion: AWSTemplateFormatVersion: '2010-09-09'
 
-Description: This template creates a new EC2 Container Service (ECS) into an existing VPC.
+Description: This template creates a new Elastic Load Balancer (ELB) into an existing VPC.
 
 Metadata:
     Foo:
@@ -32,193 +32,116 @@ Parameters:
         Type: 'String'
         Default: 'No notes'
 
-    SshKeyName:
-        Description: 'Name of the key to use when creating the EC2 instances'
-        Type: 'String'
-        Default: 'asgard-lite-test'
+    Subnets:
+        Description: 'Which subnets the Applicaion Load Balancer should be deployed to.'
+        Type: List<AWS::EC2::Subnet::Id>
 
-    InstanceType:
-        Description: 'How large of a box to run your containers on'
-        Type: 'String'
-        Default: 'm4.large'
+    VPC:
+        Type: AWS::EC2::VPC::Id
+        Description: 'Which VPC the Applicaion Load Balancer should be deployed to.'
 
-    SpotPrice:
-        Description: 'Maximum bid price to place on your EC2 instances'
-        Type: 'String'
-        Default: '0.05'
-
-    PublicSubnetZoneA:
-        Description: 'Public subnet ID to place the ECS instance into'
-        Type: 'String'
-        Default: 'subnet-e268a3ab'
-
-    PrivateSubnetZoneA:
-        Description: 'Private subnet ID to place the ECS instance into'
-        Type: 'String'
-        Default: 'subnet-e368a3aa'
-
-    PublicSubnetZoneB:
-        Description: 'Public subnet ID to place the ECS instance into'
-        Type: 'String'
-        Default: 'subnet-7ffc4c18'
-
-    PrivateSubnetZoneB:
-        Description: 'Private subnet ID to place the ECS instance into'
-        Type: 'String'
-        Default: 'subnet-70fc4c17'
-
-    SecurityGroup:
-        Description: 'Security Group to place around the ECS instances'
-        Type: 'String'
-        Default: 'sg-e6a7cc9e'
-
-
-Mappings:
-    # these AMIs change regularly.  Check http://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-optimized_AMI.html
-    RegionToAmazonAMI:
-        us-east-1:
-            HVM64: ami-b2df2ca4
-        us-east-2:
-            HVM64: ami-832b0ee6
-        us-west-1:
-            HVM64: ami-dd104dbd
-        us-west-2:
-            HVM64: ami-022b9262
+    SecurityGroups:
+        Description: 'The Security Groups to apply to the Applicaion Load Balancer'
+        Type: List<AWS::EC2::SecurityGroup::Id>
 
 Resources:
-    # Role needed by the EC2 instances so they can interact with ECS services
-    AmazonEC2ContainerServiceForEC2Role:
-        Type: 'AWS::IAM::Role'
+    PublicLoadBalancer:
+        Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
         Properties:
-            AssumeRolePolicyDocument:
-                Statement:
-                -
-                    Sid: ""
-                    Effect: "Allow"
-                    Principal:
-                        Service:
-                        - "ec2.amazonaws.com"
-                    Action:
-                    - "sts:AssumeRole"
-            Path: '/'
-            Policies:
-            -
-                PolicyName: "EC2CanContactECSRole"
-                PolicyDocument:
-                    Statement:
-                    -
-                        Effect: "Allow"
-                        Action:
-                            - "ec2:*"
-                            - "ecs:CreateCluster"
-                            - "ecs:DeregisterContainerInstance"
-                            - "ecs:DiscoverPollEndpoint"
-                            - "ecs:Poll"
-                            - "ecs:RegisterContainerInstance"
-                            - "ecs:StartTelemetrySession"
-                            - "ecs:Submit*"
-                            - "ecr:GetAuthorizationToken"
-                            - "ecr:BatchCheckLayerAvailability"
-                            - "ecr:GetDownloadUrlForLayer"
-                            - "ecr:BatchGetImage"
-                            - "logs:CreateLogStream"
-                            - "logs:PutLogEvents"
-                        Resource: "*"
-            # documentation suggests that providing a name will cause issues if updates are needed
-            RoleName: !Join [ '-', [ !Ref 'AWS::StackName', 'AmazonEC2ContainerServiceForEC2Role' ] ]
-
-    # EC2 instances will run using this profile
-    ECSInstanceProfile:
-        Type: "AWS::IAM::InstanceProfile"
-        Properties:
-            Path: "/"
-            Roles:
-            -
-                Ref: "AmazonEC2ContainerServiceForEC2Role"
-
-    # Create the cluster
-    Cluster:
-        Type: 'AWS::ECS::Cluster'
-        Properties:
-            # cluster names must adhere to this expression: ^[a-zA-Z0-9\-_]{1,255}$
-            ClusterName: !Join [ '-', [ !Ref 'AWS::StackName', 'Cluster' ] ]
-
-    # auto scaling launch configuration for the ECS servers
-    EcsLaunchConfiguration:
-        Type: AWS::AutoScaling::LaunchConfiguration
-        Properties:
-            EbsOptimized: false
-            IamInstanceProfile:
-                Ref: 'ECSInstanceProfile'
-            ImageId:
-                Fn::FindInMap:
-                    - RegionToAmazonAMI
-                    - Ref: 'AWS::Region'
-                    - HVM64
-            InstanceMonitoring: false
-            InstanceType:
-                Ref: 'InstanceType'
-            KeyName:
-                Ref: 'SshKeyName'
+            LoadBalancerAttributes:
+                - Key: 'deletion_protection.enabled'
+                  Value: 'false'
+                - Key: 'idle_timeout.timeout_seconds'
+                  Value: '60'
+            Name:
+                'Fn::Join': [ '-', [ 'Public', !Ref 'AWS::StackName' ] ]
+            Scheme: 'internet-facing'
             SecurityGroups:
-                - !Ref 'SecurityGroup'
-            SpotPrice:
-                Ref: SpotPrice
-            UserData:
-                Fn::Base64: !Sub |
-                    #!/bin/bash -xe
-                    echo ECS_CLUSTER=${Cluster} >> /etc/ecs/ecs.config
-                    curl -O https://bootstrap.pypa.io/get-pip.py
-                    python get-pip.py --user
-                    export PATH=~/.local/bin:$PATH
-                    pip --version
-                    pip install awscli --upgrade --user
-                    aws --version
-                    AWS_INSTANCE_ID=$( curl http://169.254.169.254/latest/meta-data/instance-id )
-                    echo "AWS_INSTANCE_ID=$AWS_INSTANCE_ID"
-                    ROOT_DISK_ID=$( aws ec2 describe-volumes --region ${AWS::Region} --filter "Name=attachment.instance-id, Values=$AWS_INSTANCE_ID" --query "Volumes[].VolumeId" --out text )
-                    echo "ROOT_DISK_ID=$ROOT_DISK_ID"
-                    aws ec2 create-tags  --region ${AWS::Region} --resources $ROOT_DISK_ID --tags Key=Project,Value='${Project}'
-
-    # auto scaling group for the ECS servers
-    EcsAutoScalingGroup:
-        Type: AWS::AutoScaling::AutoScalingGroup
-        Properties:
-            Cooldown: '120'
-            DesiredCapacity: '4'
-            HealthCheckType: 'EC2'
-            LaunchConfigurationName:
-                Ref: 'EcsLaunchConfiguration'
-            MaxSize: '6'
-            MinSize: '2'
+                Ref: SecurityGroups
+            Subnets:
+                Ref: Subnets
             Tags:
                 - Key: 'Name'
                   Value:
-                      'Fn::Join': [ ':', [ 'ECS', !Ref 'AWS::StackName' ] ]
-                  PropagateAtLaunch: true
+                      'Fn::Join': [ '-', [ 'Public', !Ref 'AWS::StackName' ] ]
                 - Key: 'Project'
                   Value:
                       Ref: 'Project'
-                  PropagateAtLaunch: true
                 - Key: 'Purpose'
-                  Value: 'Docker Engine'
-                  PropagateAtLaunch: true
+                  Value: 'Public load balancer'
                 - Key: 'Creator'
                   Value:
                       Ref: 'Creator'
-                  PropagateAtLaunch: true
                 - Key: 'Environment'
                   Value:
                       Ref: 'Environment'
-                  PropagateAtLaunch: true
                 - Key: 'Freetext'
-                  Value: 'Runs ECS Agent and Docker'
-                  PropagateAtLaunch: true
-            VPCZoneIdentifier: [ !Ref 'PublicSubnetZoneA', !Ref 'PrivateSubnetZoneA', !Ref 'PublicSubnetZoneB', !Ref 'PrivateSubnetZoneB' ]
+                  Value: 'No notes'
+
+    # We define a default target group here, as this is a mandatory Parameters
+    # when creating an Application Load Balancer Listener. This is not used, instead
+    # a target group is created per-service in each service template (../services/*)
+    DefaultPublicTargetGroup:
+        Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+        Properties:
+            HealthCheckIntervalSeconds: 10
+            HealthCheckPath: '/'
+            HealthCheckPort: 80
+            HealthCheckProtocol: HTTP
+            HealthCheckTimeoutSeconds: 5
+            HealthyThresholdCount: 3
+            Matcher:
+                HttpCode: '200-399'
+            Name:
+                'Fn::Join': [ '-', [ 'Public', 'Default', !Ref 'AWS::StackName' ] ]
+            Port: 80
+            Protocol: HTTP
+            Tags:
+                - Key: 'Name'
+                  Value:
+                      'Fn::Join': [ '-', [ 'Public', 'Default', !Ref 'AWS::StackName' ] ]
+                - Key: 'Project'
+                  Value:
+                      Ref: 'Project'
+                - Key: 'Purpose'
+                  Value: 'Public Load Balancer'
+                - Key: 'Creator'
+                  Value:
+                      Ref: 'Creator'
+                - Key: 'Environment'
+                  Value:
+                      Ref: 'Environment'
+                - Key: 'Freetext'
+                  Value: 'No notes'
+            UnhealthyThresholdCount: 3
+            VpcId:
+                Ref: VPC
+
+    # bind the listener to the target group
+    PublicLoadBalancerListener:
+        Type: 'AWS::ElasticLoadBalancingV2::Listener'
+        Properties:
+            DefaultActions:
+                - Type: forward
+                  TargetGroupArn:
+                      Ref: DefaultPublicTargetGroup
+            LoadBalancerArn:
+                Ref: PublicLoadBalancer
+            Port: 80
+            Protocol: HTTP
 
 
 Outputs:
-    Cluster:
-        Description: 'EC2 Container Service Cluster ID'
+    PublicLoadBalancer:
+        Description: A reference to the public facing Application Load Balancer
         Value:
-            Ref: 'Cluster'
+            Ref: PublicLoadBalancer
+
+    PublicLoadBalancerUrl:
+        Description: The URL of the public facing ALB
+        Value: !GetAtt PublicLoadBalancer.DNSName
+
+    PublicLoadBalancerListener:
+        Description: A reference to the public facting port 80 listener
+        Value:
+            Ref: PublicLoadBalancerListener
