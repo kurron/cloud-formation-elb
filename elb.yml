@@ -90,8 +90,6 @@ Resources:
             HealthyThresholdCount: 3
             Matcher:
                 HttpCode: '200-399'
-            Name:
-                'Fn::Join': [ '-', [ 'Public', 'Default', !Ref 'AWS::StackName' ] ]
             Port: 80
             Protocol: HTTP
             Tags:
