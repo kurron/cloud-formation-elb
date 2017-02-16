@@ -94,8 +94,7 @@ Resources:
             Protocol: HTTP
             Tags:
                 - Key: 'Name'
-                  Value:
-                      'Fn::Join': [ '-', [ 'Public', 'Default', !Ref 'AWS::StackName' ] ]
+                  Value: !Ref 'AWS::StackName'
                 - Key: 'Project'
                   Value:
                       Ref: 'Project'

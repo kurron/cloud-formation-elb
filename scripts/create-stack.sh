@@ -4,9 +4,9 @@
 
 STACKNAME=${1:-Weapon-X-ELB}
 PROJECTNAME=${2:-Weapon-X}
-VPC=${3:-vpc-9251cff5}
-SECURITYGROUPS=${4:-sg-f786f38f}
-SUBNETS=${5:-subnet-ad3cf6e4,subnet-3e2f9f59}
+VPC=${3:-vpc-bd6df4da}
+SECURITYGROUPS=${4:-sg-d0b6c0a8}
+SUBNETS=${5:-subnet-362bfe7f,subnet-9a16a5fd}
 ENVIRONMENT=${6:-development}
 CREATOR=${7:-CloudFormation}
 TEMPLATELOCATION=${8:-file://$(pwd)/elb.yml}
