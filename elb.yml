@@ -44,6 +44,11 @@ Parameters:
         Description: 'The Security Groups to apply to the Applicaion Load Balancer'
         Type: List<AWS::EC2::SecurityGroup::Id>
 
+    LoadBalancerPort:
+        Description: The port the load balancer should listen on
+        Type: Number
+        Default: 80
+
 Resources:
     PublicLoadBalancer:
         Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
@@ -53,7 +58,6 @@ Resources:
                   Value: 'false'
                 - Key: 'idle_timeout.timeout_seconds'
                   Value: '60'
-            Name: 'Public-ELB'
             Scheme: 'internet-facing'
             SecurityGroups:
                 Ref: SecurityGroups
@@ -61,7 +65,7 @@ Resources:
                 Ref: Subnets
             Tags:
                 - Key: 'Name'
-                  Value: 'Public-ELB'
+                  Value: !Ref 'AWS::StackName'
                 - Key: 'Project'
                   Value:
                       Ref: 'Project'
@@ -84,13 +88,15 @@ Resources:
         Properties:
             HealthCheckIntervalSeconds: 10
             HealthCheckPath: '/'
-            HealthCheckPort: 80
+            HealthCheckPort:
+                Ref: LoadBalancerPort
             HealthCheckProtocol: HTTP
             HealthCheckTimeoutSeconds: 5
             HealthyThresholdCount: 3
             Matcher:
                 HttpCode: '200-399'
-            Port: 80
+            Port:
+                Ref: LoadBalancerPort
             Protocol: HTTP
             Tags:
                 - Key: 'Name'
@@ -122,9 +128,9 @@ Resources:
                       Ref: DefaultPublicTargetGroup
             LoadBalancerArn:
                 Ref: PublicLoadBalancer
-            Port: 80
+            Port:
+                Ref: LoadBalancerPort
             Protocol: HTTP
-
 
 Outputs:
     PublicLoadBalancer:
@@ -137,6 +143,6 @@ Outputs:
         Value: !GetAtt PublicLoadBalancer.DNSName
 
     PublicLoadBalancerListener:
-        Description: A reference to the public facting port 80 listener
+        Description: A reference to the public facing listener
         Value:
             Ref: PublicLoadBalancerListener
