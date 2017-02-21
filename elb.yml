@@ -49,8 +49,13 @@ Parameters:
         Type: Number
         Default: 80
 
+    LoadBalancerType:
+        Description: Define if the balancer is an external or internal balancer (internet-facing or internal)
+        Type: String
+        Default: internet-facing
+
 Resources:
-    PublicLoadBalancer:
+    LoadBalancer:
         Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
         Properties:
             LoadBalancerAttributes:
@@ -58,7 +63,8 @@ Resources:
                   Value: 'false'
                 - Key: 'idle_timeout.timeout_seconds'
                   Value: '60'
-            Scheme: 'internet-facing'
+            Scheme:
+                Ref: LoadBalancerType
             SecurityGroups:
                 Ref: SecurityGroups
             Subnets:
@@ -70,7 +76,7 @@ Resources:
                   Value:
                       Ref: 'Project'
                 - Key: 'Purpose'
-                  Value: 'Public load balancer'
+                  Value: 'Load balancer'
                 - Key: 'Creator'
                   Value:
                       Ref: 'Creator'
@@ -83,7 +89,7 @@ Resources:
     # We define a default target group here, as this is a mandatory Parameters
     # when creating an Application Load Balancer Listener. This is not used, instead
     # a target group is created per-service in each service template (../services/*)
-    DefaultPublicTargetGroup:
+    DefaultTargetGroup:
         Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
         Properties:
             HealthCheckIntervalSeconds: 10
@@ -105,7 +111,7 @@ Resources:
                   Value:
                       Ref: 'Project'
                 - Key: 'Purpose'
-                  Value: 'Public Load Balancer'
+                  Value: 'Default Group'
                 - Key: 'Creator'
                   Value:
                       Ref: 'Creator'
@@ -113,36 +119,36 @@ Resources:
                   Value:
                       Ref: 'Environment'
                 - Key: 'Freetext'
-                  Value: 'No notes'
+                  Value: 'Required but never used by ECS'
             UnhealthyThresholdCount: 3
             VpcId:
                 Ref: VPC
 
     # bind the listener to the target group
-    PublicLoadBalancerListener:
+    LoadBalancerListener:
         Type: 'AWS::ElasticLoadBalancingV2::Listener'
         Properties:
             DefaultActions:
                 - Type: forward
                   TargetGroupArn:
-                      Ref: DefaultPublicTargetGroup
+                      Ref: DefaultTargetGroup
             LoadBalancerArn:
-                Ref: PublicLoadBalancer
+                Ref: LoadBalancer
             Port:
                 Ref: LoadBalancerPort
             Protocol: HTTP
 
 Outputs:
-    PublicLoadBalancer:
-        Description: A reference to the public facing Application Load Balancer
+    LoadBalancer:
+        Description: A reference to the Application Load Balancer
         Value:
-            Ref: PublicLoadBalancer
+            Ref: LoadBalancer
 
-    PublicLoadBalancerUrl:
-        Description: The URL of the public facing ALB
-        Value: !GetAtt PublicLoadBalancer.DNSName
+    LoadBalancerUrl:
+        Description: The URL of the ALB
+        Value: !GetAtt LoadBalancer.DNSName
 
-    PublicLoadBalancerListener:
-        Description: A reference to the public facing listener
+    LoadBalancerListener:
+        Description: A reference to the associated listener
         Value:
-            Ref: PublicLoadBalancerListener
+            Ref: LoadBalancerListener

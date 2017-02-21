@@ -4,12 +4,13 @@
 
 STACKNAME=${1:-Weapon-X-ELB}
 PROJECTNAME=${2:-Weapon-X}
-VPC=${3:-vpc-bd6df4da}
-SECURITYGROUPS=${4:-sg-d0b6c0a8}
-SUBNETS=${5:-subnet-362bfe7f,subnet-9a16a5fd}
-ENVIRONMENT=${6:-development}
-CREATOR=${7:-CloudFormation}
-TEMPLATELOCATION=${8:-file://$(pwd)/elb.yml}
+VPC=${3:-vpc-00a83267}
+SECURITYGROUPS=${4:-sg-dc146ba4}
+SUBNETS=${5:-subnet-87a573ce,subnet-81a71be6}
+VISIBILITY=${6:-internal}
+ENVIRONMENT=${7:-development}
+CREATOR=${8:-CloudFormation}
+TEMPLATELOCATION=${9:-file://$(pwd)/elb.yml}
 
 VALIDATE="aws cloudformation validate-template --template-body $TEMPLATELOCATION"
 echo $VALIDATE
@@ -22,6 +23,7 @@ CREATE="aws cloudformation create-stack --stack-name $STACKNAME \
                                                      ParameterKey=Environment,ParameterValue=$ENVIRONMENT \
                                                      ParameterKey=Creator,ParameterValue=$CREATOR \
                                                      ParameterKey=Subnets,ParameterValue=\"$SUBNETS\" \
+                                                     ParameterKey=LoadBalancerType,ParameterValue=$VISIBILITY \
                                                      ParameterKey=VPC,ParameterValue=$VPC \
                                                      ParameterKey=SecurityGroups,ParameterValue=\"$SECURITYGROUPS\" \
                                         --tags Key=Project,Value=$PROJECTNAME \
