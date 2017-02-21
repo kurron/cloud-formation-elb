@@ -84,7 +84,8 @@ Resources:
                   Value:
                       Ref: 'Environment'
                 - Key: 'Freetext'
-                  Value: 'No notes'
+                  Value:
+                      Ref: Notes
 
     # We define a default target group here, as this is a mandatory Parameters
     # when creating an Application Load Balancer Listener. This is not used, instead
