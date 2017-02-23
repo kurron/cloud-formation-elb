@@ -200,6 +200,10 @@ Outputs:
             Ref: LoadBalancerListener
 
     LogBucket:
-        Description: The S3 bucket where access logs get written to
+        Description: The logical id (name) of the S3 bucket where access logs get written to
         Value:
             Ref: Bucket
+
+    LogBucketDomainName:
+        Description: The domain name of the S3 bucket where access logs get written to
+        Value: !GetAtt Bucket.DomainName
