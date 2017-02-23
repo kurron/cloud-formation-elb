@@ -55,10 +55,55 @@ Parameters:
         Default: internet-facing
 
 Resources:
+    Bucket:
+        Type: 'AWS::S3::Bucket'
+        Properties:
+            Tags:
+                - Key: 'Project'
+                  Value:
+                      Ref: 'Project'
+                - Key: 'Purpose'
+                  Value: 'Load balancer logs'
+                - Key: 'Creator'
+                  Value:
+                      Ref: 'Creator'
+                - Key: 'Environment'
+                  Value:
+                      Ref: 'Environment'
+                - Key: 'Freetext'
+                  Value:
+                      Ref: Notes
+
+    BucketPolicy:
+        Type: 'AWS::S3::BucketPolicy'
+        Properties:
+            Bucket:
+               Ref: Bucket
+            PolicyDocument:
+                Statement:
+                    -
+                        Effect: "Allow"
+                        Action:
+                            - "s3:PutObject"
+                        Resource:
+                            Fn::Join:
+                                - ""
+                                -
+                                    - "arn:aws:s3:::"
+                                    -
+                                        Ref: Bucket
+                                    - "/*"
+                        Principal: '*'
+
     LoadBalancer:
         Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
         Properties:
             LoadBalancerAttributes:
+                - Key: 'access_logs.s3.enabled'
+                  Value: 'true'
+                - Key: 'access_logs.s3.bucket'
+                  Value:
+                      Ref: Bucket
                 - Key: 'deletion_protection.enabled'
                   Value: 'false'
                 - Key: 'idle_timeout.timeout_seconds'
@@ -153,3 +198,8 @@ Outputs:
         Description: A reference to the associated listener
         Value:
             Ref: LoadBalancerListener
+
+    LogBucket:
+        Description: The S3 bucket where access logs get written to
+        Value:
+            Ref: Bucket

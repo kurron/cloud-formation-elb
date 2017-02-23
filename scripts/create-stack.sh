@@ -4,10 +4,10 @@
 
 STACKNAME=${1:-Weapon-X-ELB}
 PROJECTNAME=${2:-Weapon-X}
-VPC=${3:-vpc-00a83267}
-SECURITYGROUPS=${4:-sg-dc146ba4}
-SUBNETS=${5:-subnet-87a573ce,subnet-81a71be6}
-VISIBILITY=${6:-internal}
+VPC=${3:-vpc-7b1b781c}
+SECURITYGROUPS=${4:-sg-548bc62c}
+SUBNETS=${5:-subnet-09e73b40,subnet-4164de26}
+VISIBILITY=${6:-internet-facing}
 ENVIRONMENT=${7:-development}
 CREATOR=${8:-CloudFormation}
 TEMPLATELOCATION=${9:-file://$(pwd)/elb.yml}
